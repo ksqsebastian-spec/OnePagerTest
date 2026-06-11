@@ -3,14 +3,15 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
-// Bold, high-contrast placeholder "images" (gradients) that swap every 10s.
-// Swap these for real <Image> sources later — the rotation logic stays the same.
+// Bold, fully-saturated colour tiles that swap every 10s. Flat solids read as
+// intentional brand art against the paper canvas (and swap cleanly for real
+// <Image> sources later). No gradients, no shadow — per the system.
 const SLIDES = [
-  "linear-gradient(135deg, #ff2d55 0%, #ff9500 100%)",
-  "linear-gradient(135deg, #0a84ff 0%, #5e5ce6 100%)",
-  "linear-gradient(135deg, #30d158 0%, #0a84ff 100%)",
-  "linear-gradient(135deg, #0a0a0a 0%, #3a3a3c 100%)",
-  "linear-gradient(135deg, #ffd60a 0%, #ff2d55 100%)",
+  "#ff2d55", // red
+  "#0a84ff", // blue
+  "#30d158", // green
+  "#ffd60a", // yellow
+  "#0a0a0a", // ink
 ];
 
 export default function RotatingImage({ show }: { show: boolean }) {
@@ -24,10 +25,10 @@ export default function RotatingImage({ show }: { show: boolean }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.92 }}
+      initial={{ opacity: 0, scale: 0.96 }}
       animate={show ? { opacity: 1, scale: 1 } : {}}
-      transition={{ duration: 0.6, ease: "easeOut" }}
-      className="relative h-32 w-44 overflow-hidden rounded-xl md:h-44 md:w-60"
+      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      className="relative h-32 w-44 overflow-hidden rounded-xl md:h-44 md:w-64"
     >
       <AnimatePresence>
         <motion.div
@@ -35,7 +36,7 @@ export default function RotatingImage({ show }: { show: boolean }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 1.0 }}
+          transition={{ duration: 0.9 }}
           className="absolute inset-0"
           style={{ background: SLIDES[i] }}
         />

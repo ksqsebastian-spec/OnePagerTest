@@ -17,27 +17,19 @@ export default function Home() {
 
   const ready = stage === "ready";
 
-  function handleNav(item: NavItem) {
-    setPanel(item.action);
-  }
-
   return (
-    <main className="relative h-dvh w-screen overflow-hidden p-6 md:p-10">
+    <main className="relative h-dvh w-screen overflow-hidden px-8 py-10 md:px-14 md:py-12">
       {/* Greeting (top-left) */}
-      <div className="absolute left-6 top-6 md:left-10 md:top-10">
-        <h1 className="text-5xl font-medium tracking-tight md:text-6xl">
-          <TypingText
-            text="Moin"
-            speed={140}
-            onDone={() => setStage("headline")}
-          />
+      <div className="absolute left-8 top-10 md:left-14 md:top-12">
+        <h1 className="font-display text-5xl font-semibold tracking-tight md:text-6xl">
+          <TypingText text="Moin" speed={150} onDone={() => setStage("headline")} />
         </h1>
 
         {stage !== "moin" && (
-          <div className="mt-8 max-w-3xl text-4xl font-medium leading-tight tracking-tight md:mt-12 md:text-6xl">
+          <div className="mt-7 max-w-3xl font-display text-4xl font-medium leading-[1.08] tracking-tight md:mt-10 md:text-[3.75rem]">
             <TypingText
               text={"Willkommen bei Seehafer\nWie kann ich dir helfen"}
-              speed={45}
+              speed={42}
               onDone={() => setStage("ready")}
               className="whitespace-pre-line"
             />
@@ -45,28 +37,34 @@ export default function Home() {
         )}
       </div>
 
-      {/* Rotating image (top-right) */}
-      <div className="absolute right-6 top-6 md:right-10 md:top-10">
+      {/* Rotating art (top-right) */}
+      <div className="absolute right-8 top-10 md:right-14 md:top-12">
         <RotatingImage show={ready} />
       </div>
 
-      {/* Nav buttons (bottom-left) */}
-      <div className="absolute bottom-6 left-6 md:bottom-10 md:left-10">
-        <NavButtons show={ready} onSelect={handleNav} />
+      {/* Nav pills (bottom-left) */}
+      <div className="absolute bottom-10 left-8 md:bottom-12 md:left-14">
+        <NavButtons show={ready} active={panel} onSelect={(item: NavItem) => setPanel(item.action)} />
       </div>
 
-      {/* Chat window (bottom-right) */}
-      <div className="absolute bottom-6 right-6 w-[min(90vw,36rem)] md:bottom-10 md:right-10">
+      {/* Chat (bottom-right) */}
+      <div className="absolute bottom-10 right-8 w-[min(90vw,32rem)] md:bottom-12 md:right-14">
         <ChatWindow show={ready} onRender={setPanel} />
       </div>
 
-      {/* Generative UI surface — builds into the center of the canvas. */}
-      <motion.div
-        layout
-        className="pointer-events-none absolute inset-0 flex items-center justify-center p-6"
-      >
-        <GenerativePanel target={panel} onClose={() => setPanel(null)} />
-      </motion.div>
+      {/* Generative-UI surface — panels build into the center of the canvas. */}
+      {panel && (
+        <motion.div
+          className="absolute inset-0 z-10 flex items-center justify-center bg-canvas/40 p-8 backdrop-blur-[2px]"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          onClick={() => setPanel(null)}
+        >
+          <div onClick={(e) => e.stopPropagation()}>
+            <GenerativePanel target={panel} onClose={() => setPanel(null)} />
+          </div>
+        </motion.div>
+      )}
     </main>
   );
 }
