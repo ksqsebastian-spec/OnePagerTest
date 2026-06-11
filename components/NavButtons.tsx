@@ -14,8 +14,11 @@ const ITEMS: NavItem[] = [
   { label: "About us", action: "about" },
 ];
 
-// Black pills that pop in on intro, then physically reflow between a vertical
-// stack (idle) and a horizontal row (when a tool claims the stage).
+const EASE = [0.22, 1, 0.36, 1] as const;
+
+// Black pills that fade in gently on intro, then glide between a vertical stack
+// (idle) and a horizontal row (tool). Entrance is opacity-only so it never
+// fights the layout transform — keeps the motion calm and clean.
 export default function NavButtons({
   show,
   active,
@@ -30,7 +33,7 @@ export default function NavButtons({
   return (
     <div
       className={[
-        "flex gap-2.5",
+        "flex gap-3",
         orientation === "vertical" ? "flex-col items-start" : "flex-row flex-wrap items-center",
       ].join(" ")}
     >
@@ -42,16 +45,15 @@ export default function NavButtons({
             type="button"
             layout
             onClick={() => onSelect(item)}
-            initial={{ opacity: 0, y: 12 }}
-            animate={show ? { opacity: 1, y: 0 } : {}}
+            initial={{ opacity: 0 }}
+            animate={show ? { opacity: 1 } : {}}
             transition={{
-              opacity: { delay: 0.15 + 0.09 * i, duration: 0.4 },
-              y: { delay: 0.15 + 0.09 * i, type: "spring", stiffness: 480, damping: 30 },
-              layout: { type: "spring", stiffness: 380, damping: 34 },
+              opacity: { delay: 0.2 + 0.12 * i, duration: 0.7, ease: EASE },
+              layout: { duration: 0.8, ease: EASE },
             }}
-            whileTap={{ scale: 0.97 }}
+            whileTap={{ scale: 0.98 }}
             className={[
-              "rounded-full px-5 py-2.5 text-base font-medium transition-colors md:text-lg",
+              "rounded-full px-6 py-3 text-base font-medium transition-colors duration-300 md:text-lg",
               isActive
                 ? "bg-white text-ink ring-1 ring-hairline-strong"
                 : "bg-ink text-on-dark hover:bg-black",

@@ -8,30 +8,22 @@ import RotatingImage from "@/components/RotatingImage";
 import ChatWindow from "@/components/ChatWindow";
 import GenerativePanel, { type RenderTarget } from "@/components/GenerativePanel";
 
-type Stage = "moin" | "headline" | "reveal";
-const EASE = [0.16, 1, 0.3, 1] as const;
+type Stage = "moin" | "headline" | "done";
 
-// Two layouts. Same five named areas — only their placement changes, so the
-// chat, buttons, hero and art FLIP-animate to their new homes when a tool
-// claims the stage. The tool element gets the priority centre-left block.
-const IDLE_AREAS = `
-  "hero hero .    art"
-  "hero hero .    ."
-  ".    .    chat chat"
-  "btns .    chat chat"`;
+const EASE = [0.22, 1, 0.36, 1] as const;
+const GLIDE = { layout: { duration: 0.85, ease: EASE } };
+const HEADLINE = "Willkommen bei Seehafer\nWie kann ich dir helfen";
 
-const TOOL_AREAS = `
-  "hero  hero  hero  chat"
-  "stage stage stage chat"
-  "stage stage stage chat"
-  "btns  btns  btns  chat"`;
-
+// Calm composition: two stable columns. The left holds the hero/stage/nav, the
+// right holds the chat (constant size — it only glides, never resizes, so its
+// contents never distort). A tool fades into the left stage; the chat slides to
+// vertical-centre to balance it. Everything moves on slow, gentle tweens.
 export default function Home() {
   const [stage, setStage] = useState<Stage>("moin");
   const [panel, setPanel] = useState<RenderTarget>(null);
 
-  const revealed = stage === "reveal";
-  const toolActive = panel !== null;
+  const revealed = stage === "done";
+  const tool = panel !== null;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setPanel(null);
@@ -43,93 +35,116 @@ export default function Home() {
     setPanel((p) => (p === item.action ? null : item.action));
 
   return (
-    <main
-      className="grid h-dvh w-screen gap-6 overflow-hidden p-8 md:gap-8 md:p-12"
-      style={{
-        gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-        gridTemplateRows: "auto 1fr 1fr auto",
-        gridTemplateAreas: (toolActive ? TOOL_AREAS : IDLE_AREAS).trim(),
-      }}
-    >
+    <main className="flex h-dvh w-screen gap-12 overflow-hidden p-10 md:gap-20 md:p-20">
       <LayoutGroup>
-        {/* HERO ↔ BRAND */}
-        <motion.div layout transition={{ layout: { duration: 0.6, ease: EASE } }} style={{ gridArea: "hero" }} className="min-w-0 self-start">
-          <AnimatePresence mode="wait">
-            {!toolActive ? (
-              <motion.div key="full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <h1 className="font-display text-5xl font-semibold tracking-tight md:text-6xl">
-                  <TypingText text="Moin" speed={150} onDone={() => setStage("headline")} />
-                </h1>
-                {stage !== "moin" && (
-                  <div className="mt-6 max-w-3xl font-display text-4xl font-medium leading-[1.08] tracking-tight md:mt-9 md:text-[3.4rem]">
-                    <TypingText
-                      text={"Willkommen bei Seehafer\nWie kann ich dir helfen"}
-                      speed={42}
-                      onDone={() => setStage("reveal")}
-                      className="whitespace-pre-line"
-                    />
-                  </div>
-                )}
-              </motion.div>
-            ) : (
-              <motion.button
-                key="brand"
-                onClick={() => setPanel(null)}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="font-display text-3xl font-semibold tracking-tight"
-              >
-                Seehafer
-              </motion.button>
-            )}
-          </AnimatePresence>
-        </motion.div>
+        {/* LEFT COLUMN — hero · stage · nav */}
+        <div className="flex min-w-0 flex-1 flex-col">
+          {/* Hero ↔ wordmark (intro types once; never re-types) */}
+          <motion.div layout transition={GLIDE} className="min-w-0">
+            <AnimatePresence initial={false} mode="popLayout">
+              {!tool ? (
+                <motion.div
+                  key="hero"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.7, ease: EASE }}
+                >
+                  <h1 className="font-display text-[3.25rem] font-semibold leading-none tracking-tight md:text-[4.5rem]">
+                    {revealed ? "Moin" : <TypingText text="Moin" speed={170} onDone={() => setStage("headline")} />}
+                  </h1>
+                  {stage !== "moin" && (
+                    <div className="mt-8 max-w-2xl font-display text-3xl font-medium leading-[1.16] tracking-tight text-charcoal md:mt-10 md:text-[2.6rem]">
+                      {revealed ? (
+                        <span className="whitespace-pre-line">{HEADLINE}</span>
+                      ) : (
+                        <TypingText
+                          text={HEADLINE}
+                          speed={48}
+                          onDone={() => setStage("done")}
+                          className="whitespace-pre-line"
+                        />
+                      )}
+                    </div>
+                  )}
+                </motion.div>
+              ) : (
+                <motion.button
+                  key="brand"
+                  onClick={() => setPanel(null)}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.7, ease: EASE }}
+                  className="font-display text-2xl font-semibold tracking-tight transition-opacity duration-300 hover:opacity-60 md:text-3xl"
+                >
+                  Seehafer
+                </motion.button>
+              )}
+            </AnimatePresence>
+          </motion.div>
 
-        {/* ROTATING ART — idle only */}
-        <AnimatePresence>
-          {!toolActive && (
-            <motion.div layout transition={{ layout: { duration: 0.6, ease: EASE } }} style={{ gridArea: "art" }} className="flex items-start justify-end">
+          {/* Stage — the generated tool fades into the open space */}
+          <div className="relative min-h-0 flex-1">
+            <AnimatePresence>
+              {tool && (
+                <motion.div
+                  key="stage"
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 14 }}
+                  transition={{ duration: 0.7, ease: EASE }}
+                  className="absolute inset-x-0 bottom-0 top-10 md:top-14"
+                >
+                  <GenerativePanel target={panel} onClose={() => setPanel(null)} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Nav — glides between vertical stack and horizontal row */}
+          <motion.div layout transition={GLIDE} className="shrink-0 pt-10">
+            <NavButtons
+              show={revealed}
+              active={panel}
+              orientation={tool ? "horizontal" : "vertical"}
+              onSelect={toggle}
+            />
+          </motion.div>
+        </div>
+
+        {/* RIGHT COLUMN — art (idle, absolute so it never shifts the chat) + chat */}
+        <div className="relative flex w-[20rem] shrink-0 flex-col md:w-[24rem]">
+          <div className="absolute right-0 top-0">
+            <AnimatePresence>
+              {!tool && (
+                <motion.div
+                  key="art"
+                  initial={{ opacity: 0 }}
+                  animate={revealed ? { opacity: 1 } : {}}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.9, ease: EASE }}
+                >
+                  <RotatingImage show={revealed} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Chat: constant height; only its vertical anchor changes → pure glide */}
+          <div className={`flex h-full flex-col ${tool ? "justify-center" : "justify-end"}`}>
+            <motion.div layout transition={GLIDE} className="h-[clamp(20rem,56vh,30rem)]">
               <motion.div
-                initial={{ opacity: 0, scale: 0.96 }}
-                animate={revealed ? { opacity: 1, scale: 1 } : {}}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ delay: 0.2, duration: 0.6, ease: EASE }}
+                initial={{ opacity: 0, y: 18 }}
+                animate={revealed ? { opacity: 1, y: 0 } : {}}
+                transition={{ delay: 0.5, duration: 0.9, ease: EASE }}
+                className="h-full"
               >
-                <RotatingImage show={revealed} />
+                <ChatWindow show={revealed} onRender={setPanel} />
               </motion.div>
             </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* TOOL STAGE — priority block, tool only */}
-        {toolActive && (
-          <motion.div layout transition={{ layout: { duration: 0.6, ease: EASE } }} style={{ gridArea: "stage" }} className="min-h-0 min-w-0">
-            <GenerativePanel target={panel} onClose={() => setPanel(null)} />
-          </motion.div>
-        )}
-
-        {/* CHAT — docks from bottom-right card to tall right column */}
-        <motion.div layout transition={{ layout: { duration: 0.6, ease: EASE } }} style={{ gridArea: "chat" }} className="min-h-0 min-w-0">
-          <motion.div
-            initial={{ opacity: 0, y: 28 }}
-            animate={revealed ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: 0.45, duration: 0.6, ease: EASE }}
-            className="h-full"
-          >
-            <ChatWindow show={revealed} onRender={setPanel} />
-          </motion.div>
-        </motion.div>
-
-        {/* NAV — reflows stack ↔ row */}
-        <motion.div layout transition={{ layout: { duration: 0.6, ease: EASE } }} style={{ gridArea: "btns" }} className="flex min-w-0 items-end">
-          <NavButtons
-            show={revealed}
-            active={panel}
-            orientation={toolActive ? "horizontal" : "vertical"}
-            onSelect={toggle}
-          />
-        </motion.div>
+          </div>
+        </div>
       </LayoutGroup>
     </main>
   );
