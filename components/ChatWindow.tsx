@@ -12,6 +12,8 @@ interface Message {
 
 const PROMPT = "Schreib hier rein, ich beantworte deine Frage";
 
+// Height-flexible chat. Fills whatever cell the layout engine docks it into —
+// a 2×2 card when idle, a tall right column when a tool takes the stage.
 export default function ChatWindow({
   show,
   onRender,
@@ -43,7 +45,6 @@ export default function ChatWindow({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text }),
       });
-
       const renderHint = (res.headers.get("X-Render") || "") as string;
       const reader = res.body?.getReader();
       const decoder = new TextDecoder();
@@ -64,7 +65,6 @@ export default function ChatWindow({
           scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
         }
       }
-
       if (renderHint) onRender(renderHint as RenderTarget);
     } catch {
       setMessages((m) => {
@@ -81,31 +81,45 @@ export default function ChatWindow({
   }
 
   const ready = promptDone || messages.length > 0;
+  const dots = ["#ff5f56", "#ffbd2e", "#27c93f"];
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={show ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="w-full overflow-hidden rounded-xl border border-hairline bg-surface"
-    >
-      {/* Terminal-style header — the system's signature traffic lights. */}
-      <div className="flex items-center gap-2 border-b border-hairline px-4 py-3">
-        <span className="h-3 w-3 rounded-full bg-[#ff5f56]" />
-        <span className="h-3 w-3 rounded-full bg-[#ffbd2e]" />
-        <span className="h-3 w-3 rounded-full bg-[#27c93f]" />
-        <span className="ml-2 font-mono text-xs text-mute">seehafer — chat</span>
+    <div className="flex h-full w-full flex-col overflow-hidden rounded-xl border border-hairline bg-surface">
+      {/* Terminal-style header — boots in dot by dot. */}
+      <div className="flex shrink-0 items-center gap-2 border-b border-hairline px-4 py-3">
+        {dots.map((c, i) => (
+          <motion.span
+            key={c}
+            className="h-3 w-3 rounded-full"
+            style={{ background: c }}
+            initial={{ scale: 0 }}
+            animate={show ? { scale: 1 } : {}}
+            transition={{ delay: 0.6 + i * 0.09, type: "spring", stiffness: 600, damping: 18 }}
+          />
+        ))}
+        <motion.span
+          className="ml-2 font-mono text-xs text-mute"
+          initial={{ opacity: 0 }}
+          animate={show ? { opacity: 1 } : {}}
+          transition={{ delay: 0.95 }}
+        >
+          seehafer — chat
+        </motion.span>
       </div>
 
-      <div className="flex h-64 flex-col p-5 md:h-72">
+      <div className="flex min-h-0 flex-1 flex-col p-5">
         {messages.length === 0 ? (
           <p className="text-lg text-body md:text-xl">
-            {show && (
-              <TypingText text={PROMPT} speed={38} onDone={() => setPromptDone(true)} />
-            )}
+            <TypingText
+              text={PROMPT}
+              speed={34}
+              start={show}
+              startDelay={1050}
+              onDone={() => setPromptDone(true)}
+            />
           </p>
         ) : (
-          <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto pr-1">
+          <div ref={scrollRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
             {messages.map((m, i) => (
               <div key={i} className={m.role === "user" ? "text-right" : "text-left"}>
                 <span
@@ -127,7 +141,7 @@ export default function ChatWindow({
             e.preventDefault();
             send();
           }}
-          className="mt-auto flex items-center gap-2 border-t border-hairline pt-4"
+          className="mt-auto flex shrink-0 items-center gap-2 border-t border-hairline pt-4"
         >
           <input
             ref={inputRef}
@@ -135,13 +149,13 @@ export default function ChatWindow({
             onChange={(e) => setInput(e.target.value)}
             disabled={!ready}
             placeholder="Frag mich etwas …"
-            className="flex-1 bg-transparent text-[15px] text-ink outline-none placeholder:text-mute disabled:opacity-40"
+            className="min-w-0 flex-1 bg-transparent text-[15px] text-ink outline-none placeholder:text-mute disabled:opacity-40"
           />
           <button
             type="submit"
             disabled={busy || !input.trim()}
             aria-label="Senden"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-on-dark transition-opacity hover:bg-black disabled:opacity-25"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink text-on-dark transition-opacity hover:bg-black disabled:opacity-25"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 12h14M13 6l6 6-6 6" />
@@ -149,6 +163,6 @@ export default function ChatWindow({
           </button>
         </form>
       </div>
-    </motion.div>
+    </div>
   );
 }
